@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 import requests
 import telegram
@@ -31,11 +32,10 @@ def get_long_pooling_response(headers):
         except KeyError:
             continue
         except requests.exceptions.ReadTimeout:
-            print(
-                "Время ответа сервера истекло",
-                file=sys.stderr)
+            continue
         except requests.exceptions.ConnectionError:
             print("Ошибка соединения", file=sys.stderr)
+            time.sleep(15)
 
         return long_pooling_response
 
@@ -65,7 +65,7 @@ def send_message_from_bot(response_up, user_chat_id, tg_token, tg_chat_id):
 def main():
     load_dotenv()
 
-    token = os.getenv("TOKEN")
+    token = os.getenv("DEVMAN_TOKEN")
     tg_token = os.getenv("TG_BOT_TOKEN")
     tg_chat_id = os.getenv("TG_CHAT_ID")
 
