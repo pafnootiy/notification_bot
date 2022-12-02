@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 import sys
 import time
@@ -8,8 +9,20 @@ import telegram
 from dotenv import load_dotenv
 
 
-def get_message_from_bot(headers, user_chat_id, tg_token):
-    bot = telegram.Bot(token=tg_token)
+class TelegramLogsHandler(logging.Handler):
+
+    def __init__(self, tg_chat_id,bot):
+        super().__init__()
+        self.chat_id = tg_chat_id
+        self.bot = bot
+
+
+    def emit(self, record):
+        log_entry = self.format(record)
+        self.bot.send_message(text=log_entry, chat_id=self.chat_id)
+
+
+def get_message_from_bot(headers, user_chat_id, logger, bot):
     long_pooling_url = "https://dvmn.org/api/long_polling/"
     payload = {}
     while True:
@@ -46,17 +59,27 @@ def get_message_from_bot(headers, user_chat_id, tg_token):
                 }
 
         except (
-        requests.exceptions.ReadTimeout, requests.exceptions.HTTPError):
+                requests.exceptions.ReadTimeout,
+                requests.exceptions.HTTPError):
             pass
         except requests.exceptions.ConnectionError:
             print("Ошибка соединения", file=sys.stderr)
+            logger.error('Ошибка соединения')
             time.sleep(15)
 
 
 def main():
     load_dotenv()
+
     devman_token = os.getenv("DEVMAN_TOKEN")
     tg_token = os.getenv("TG_BOT_TOKEN")
+    tg_chat_id = os.getenv("TG_CHAT_ID")
+    bot = telegram.Bot(token=tg_token)
+
+    logger = logging.getLogger('Logger')
+    logger.setLevel(logging.WARNING)
+    logger.addHandler(TelegramLogsHandler(tg_chat_id,bot))
+    logger.warning('Бот запущен!')
 
     headers = {
         "Authorization": devman_token
@@ -64,12 +87,13 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Enter your chat_id ")
-    parser.add_argument('chat_id', help='Ваш персональный чат ID в Телеграмм',
-                        type=int, default="tg_chat_id")
+    parser.add_argument('--chat_id',
+                        help='Ваш персональный чат ID в Телеграмм',
+                        type=int, default=tg_chat_id)
     args = parser.parse_args()
     user_chat_id = args.chat_id
 
-    get_message_from_bot(headers, user_chat_id, tg_token)
+    get_message_from_bot(headers, user_chat_id, logger, bot)
 
 
 if __name__ == '__main__':
