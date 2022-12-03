@@ -8,14 +8,15 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
+logger = logging.getLogger('Logger')
+
 
 class TelegramLogsHandler(logging.Handler):
 
-    def __init__(self, tg_chat_id,bot):
+    def __init__(self, tg_chat_id, bot):
         super().__init__()
         self.chat_id = tg_chat_id
         self.bot = bot
-
 
     def emit(self, record):
         log_entry = self.format(record)
@@ -76,9 +77,8 @@ def main():
     tg_chat_id = os.getenv("TG_CHAT_ID")
     bot = telegram.Bot(token=tg_token)
 
-    logger = logging.getLogger('Logger')
     logger.setLevel(logging.WARNING)
-    logger.addHandler(TelegramLogsHandler(tg_chat_id,bot))
+    logger.addHandler(TelegramLogsHandler(tg_chat_id, bot))
     logger.warning('Бот запущен!')
 
     headers = {
